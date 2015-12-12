@@ -1,10 +1,10 @@
-I. Operations:
+I. Operations: ???
 
 	1. set	[lala]	; uses peek to get value from stack, replaces pop [lala]
 	2. if		[lala]	; check if [lala] exists if yes executes the next operation
 							; if not, it skips the next operation
 
-2. Add exceptions:
+2. Add exceptions: done
 
 3. Add arrays and STRUCT
 
