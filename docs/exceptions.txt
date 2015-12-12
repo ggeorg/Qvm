@@ -197,7 +197,7 @@ example 4)
 	Result:
 	
 	+--------------------------------------------+
-			/Qvm/build$ Math=libm.so ./Qvm ../exception-handling.q
+		../Qvm/build$ Math=libm.so ./Qvm ../exception-handling.q
 		>>> sp=0x1 (0xff) pc=0x2 (0xe:0xff)
 		[       0] S32    : 4
 	+--------------------------------------------+
