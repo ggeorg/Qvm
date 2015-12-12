@@ -202,15 +202,15 @@ example 4)
 		[       0] S32    : 4
 	+--------------------------------------------+
 
-The implementation of clr or :
+The implementation of clr is:
 
-			q_clr_t *op = (q_clr_t *)self;
+		q_clr_t *op = (q_clr_t *)self;
 	
-			if (ctx->err_handler) { /* drop current error handler */
-				ctx->err_handler = ctx->err_handler->next;
-			} else {
-				return ERROR_UNBALANCED_CLR_OP;
-			}
+		if (ctx->err_handler) { /* drop current error handler */
+			ctx->err_handler = ctx->err_handler->next;
+		} else {
+			return ERROR_UNBALANCED_CLR_OP;
+		}
 			
-			return OP_OK;
+		return OP_OK;
 
