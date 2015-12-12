@@ -1,3 +1,6 @@
+	s32	32
+	s32	0
+		
 	call	do_something
 
 	dump
@@ -5,8 +8,6 @@
 
 :do_something
 	joe	on_error
-		s32	32
-		s32	0
 		div
 	clr
 
