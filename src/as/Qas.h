@@ -10,7 +10,9 @@
 
 #define EXIT_CODE_INVALID_OPERATION			-1
 #define EXIT_CODE_INVALID_IDENTIFIER		-2
-#define EXIT_CODE_INVALID_FLOAT				-3
+#define EXIT_CODE_INVALID_NUMBER				-3
+#define EXIT_CODE_INVALID_FLOAT				-4
+#define EXIT_CODE_INVALID_DOUBLE				-5
 
 int parse_file(q_context_t *ctx, FILE *fp);
 

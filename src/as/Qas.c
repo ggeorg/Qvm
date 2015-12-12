@@ -33,6 +33,12 @@ static void err_invalid_ident() {
 	exit(EXIT_CODE_INVALID_IDENTIFIER);
 }
 
+static void err_invalid_number() {
+	fprintf(stderr, "*** invalid number at col: %ld, line: %d\n", 
+		(line_ptr - line), lineno);
+	exit(EXIT_CODE_INVALID_NUMBER);
+}
+
 static void err_invalid_float() {
 	fprintf(stderr, "*** invalid float at col: %ld, line: %d\n", 
 		(line_ptr - line), lineno);
@@ -42,7 +48,7 @@ static void err_invalid_float() {
 static void err_invalid_double() {
 	fprintf(stderr, "*** invalid double at col: %ld, line: %d\n", 
 		(line_ptr - line), lineno);
-	exit(EXIT_CODE_INVALID_FLOAT);
+	exit(EXIT_CODE_INVALID_DOUBLE);
 }
 
 /* warnings */
@@ -169,23 +175,6 @@ static char *read_string() {
 	return result;
 }
 
-static int read_optype() {
-	if(*line_ptr == '8' &&  is_skip(*(line_ptr + 1))) {
-		line_ptr += 2;
-		return 8;
-	} else if (*line_ptr == '1' && *(line_ptr + 1) == '6' &&  is_skip(*(line_ptr + 2))) {
-		line_ptr += 3;
-		return 16;
-	} else if (*line_ptr == '3' && *(line_ptr + 1) == '2' &&  is_skip(*(line_ptr + 2))) {
-		line_ptr += 3;
-		return 32;
-	} else if (*line_ptr == '6' && *(line_ptr + 1) == '4' &&  is_skip(*(line_ptr + 2))) {
-		line_ptr += 3;
-		return 64;
-	} 
-	return -1;
-}
-
 static int read_numbase() {
 	if (*line_ptr == '0' && *(line_ptr + 1) == 'x') {
 		line_ptr += 2;
@@ -195,7 +184,7 @@ static int read_numbase() {
 	}
 }
 
-static _s64_t read_llong(int *error) {
+static _s64_t read_llong() {
 	char *endptr;
 	int base;
 	
@@ -204,13 +193,13 @@ static _s64_t read_llong(int *error) {
 	base = read_numbase();
 	val = strtoll(line_ptr, &endptr, base);
 	if (!is_eol(endptr)) {
-		*error = 1;
+		err_invalid_number();
 	}
 	
 	return val;
 }
 
-static _u64_t read_ullong(int *error) {
+static _u64_t read_ullong() {
 	char *endptr;
 	int base;
 	
@@ -219,13 +208,13 @@ static _u64_t read_ullong(int *error) {
 	base = read_numbase();
 	val = strtoull(line_ptr, &endptr, base);
 	if (!is_eol(endptr)) {
-		*error = 1;
+		err_invalid_number();
 	}
 	
 	return val;
 }
 
-static _s32_t read_long(int *error) {
+static _s32_t read_long() {
 	char *endptr;
 	int base;
 	
@@ -234,13 +223,13 @@ static _s32_t read_long(int *error) {
 	base = read_numbase();
 	val = strtol(line_ptr, &endptr, base);
 	if (!is_eol(endptr)) {
-		*error = 1;
+		err_invalid_number();
 	}
 	
 	return val;
 }
 
-static _u32_t read_ulong(int *error) {
+static _u32_t read_ulong() {
 	char *endptr;
 	int base;
 	
@@ -249,145 +238,32 @@ static _u32_t read_ulong(int *error) {
 	base = read_numbase();
 	val = strtoul(line_ptr, &endptr, base);
 	if (!is_eol(endptr)) {
-		*error = 1;
+		err_invalid_number();
 	}
 	
 	return val;
 }
 
-static _float_t read_float(int *error) {
+static _float_t read_float() {
 	char *endptr;
 	
 	_float_t val = strtof(line_ptr, &endptr);
 	if (!is_eol(endptr)) {
-		*error = 1;
+		err_invalid_float();
 	}
 	
 	return val;
 }
 
-static _double_t read_double(int *error) {
+static _double_t read_double() {
 	char *endptr;
 	
 	_double_t val = strtod(line_ptr, &endptr);
 	if (!is_eol(endptr)) {
-		*error = 1;
+		err_invalid_double();
 	}
 	
 	return val;
-}
-
-static void do_sN(int optype) {
-	int error = 0;
-	
-	skip();
-	
-	if (*line_ptr == '[') {
-		++line_ptr;
-		
-		// identifier
-		
-	} else if (optype == 64) {
-		if (is_eol(line_ptr)) {
-			q_ops_push(ctx, q_op_cnvto_s64());
-		} else {
-			_s64_t val = read_llong(&error);
-			if (error) {
-				// TODO error
-				return;
-			}
-			q_ops_push(ctx, q_op_push_s64((_s64_t)val));
-		}
-	} else {
-		if (is_eol(line_ptr)) {
-			switch (optype) {
-				case 8:
-					q_ops_push(ctx, q_op_cnvto_s8());
-					break;
-				case 16:
-					q_ops_push(ctx, q_op_cnvto_s16());
-					break;
-				case 32:
-					q_ops_push(ctx, q_op_cnvto_s32());
-					break;
-			}
-		} else {
-			_s32_t val = read_long(&error);
-			if (error) {
-				// TODO error
-				return;
-			}
-
-			switch (optype) {
-			case 8:
-				q_ops_push(ctx, q_op_push_s8((_s8_t)val));
-				break;
-			case 16:
-				q_ops_push(ctx, q_op_push_s16((_s16_t)val));
-				break;
-			case 32:
-				q_ops_push(ctx, q_op_push_s32((_s32_t)val));
-				break;
-			}
-		}
-	}
-}
-
-static void do_uN(int optype) {
-	int error = 0;
-	
-	while(is_skip(*line_ptr))
-		++line_ptr;
-	
-	if (*line_ptr == '[') {
-		++line_ptr;
-		
-		// identifier
-	
-	} else if (optype == 64) {
-		if (is_eol(line_ptr)) {
-			q_ops_push(ctx, q_op_cnvto_u64());
-		} else {
-			_u64_t val = read_ullong(&error);
-			if (error) {
-				// TODO error
-				return;
-			}
-			q_ops_push(ctx, q_op_push_u64((_u64_t)val));
-		}
-	} else {
-		if (is_eol(line_ptr)) {
-			switch (optype) {
-				case 8:
-					q_ops_push(ctx, q_op_cnvto_u8());
-					break;
-				case 16:
-					q_ops_push(ctx, q_op_cnvto_u16());
-					break;
-				case 32:
-					q_ops_push(ctx, q_op_cnvto_u32());
-					break;
-			}
-		} else {
-			_u32_t val = read_ulong(&error);
-			if (error) {
-				// TODO error
-				return;
-			}
-
-			switch (optype) {
-			case 8:
-				q_ops_push(ctx, q_op_push_u8((_u8_t)val));
-				break;
-			case 16:
-				q_ops_push(ctx, q_op_push_u16((_u16_t)val));
-				break;
-			case 32:
-				q_ops_push(ctx, q_op_push_u32((_u32_t)val));
-				break;
-			}
-		}
-	}
 }
 
 static void do_dlopen() {
@@ -465,15 +341,11 @@ static void do_operation() {
 		case 'f': {
 				char *p = line_ptr;
 				_float_t val;
-				int error = 0;
 	
 				if (p[0] == 'l' && p[1] == 't' && is_skip(p[2])) {
 					line_ptr += 3; skip();
-					val = read_float(&error);
-					if (error) {
-						err_invalid_float();
-					}
-					q_ops_push(ctx, q_op_push_float((_float_t)val));
+					val = read_float();
+					q_ops_push(ctx, q_op_push_float(val));
 				} else {
 					err_invalid_op();
 				}
@@ -601,37 +473,12 @@ static void do_operation() {
 			}
 			break;
 			
-		case 's': {
-				int optype = read_optype();
-				if (optype != -1) {
-					do_sN(optype);
-				} else {
-					char *p = line_ptr;
-					if (p[0] == 'u' && p[1] == 'b' && is_eol(&p[2])) {
-						q_ops_push(ctx, q_op_sub());
-					} else if (p[0] == 't' && p[1] == 'r' && is_skip(p[2])) {
-						char *val;
-						
-						line_ptr += 3; skip();
-						if (*line_ptr == '"') {
-							 // read string will exit on error
-							val = read_string();
-							q_ops_push(ctx, q_op_push_string(val));
-						} else {
-							// TODO ???
-							return;
-						}
-					}
-				}
-			}
+		case 's': 
+			#include "case-s.h"
 			break;
 			
-		case 'u': {
-				int optype = read_optype();
-				if (optype != -1) {
-					do_uN(optype);
-				}
-			}
+		case 'u': 
+			#include "case-u.h"
 			break;
 	}
 }
