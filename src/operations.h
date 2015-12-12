@@ -70,6 +70,7 @@ q_operation_t *q_op_jp(_string_t label);
 
 q_operation_t *q_op_joe(_string_t label);
 q_operation_t *q_op_clr(void);
+q_operation_t *q_op_throw(_s32_t val);
 
 /* >>> subroutines <<< */
 

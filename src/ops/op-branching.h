@@ -548,15 +548,36 @@ static int op_clr(q_operation_t *self, q_context_t *ctx) {
 	
 	if (ctx->err_handler) { /* drop current error handler */
 		ctx->err_handler = ctx->err_handler->next;
+	} else {
+		return ERROR_UNBALANCED_CLR_OP;
 	}
 
-	return 0;
+	return OP_OK;
 }
 
 // TODO use singleton
 q_operation_t *q_op_clr() {
 	q_clr_t *op = (q_clr_t *)q_gc_malloc(sizeof(q_clr_t));
 	op->op.exec = op_clr;
+	return (q_operation_t *)op;
+}
+
+/* >>> throw (throws exception) <<< */
+
+typedef struct {
+	q_operation_t op;
+	_s32_t _val;
+} q_throw_t;
+
+static int op_throw(q_operation_t *self, q_context_t *ctx) {
+	q_throw_t *op = (q_throw_t *)self;
+	return abs(op->_val) > 1000 ? op->_val : ERROR_ILLIGAL_ARGUMENT;
+}
+
+q_operation_t *q_op_throw(_s32_t val) {
+	q_throw_t *op = (q_throw_t *)q_gc_malloc(sizeof(q_throw_t));
+	op->op.exec = op_throw;
+	op->_val = val;
 	return (q_operation_t *)op;
 }
 

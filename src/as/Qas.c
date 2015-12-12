@@ -477,8 +477,26 @@ static void do_operation() {
 			#include "case-s.h"
 			break;
 			
+		case 't': {
+				char *p = line_ptr;
+				_s32_t val;
+				if (p[0] == 'h' && p[1] == 'r' && p[2] == 'o' && p[3] == 'w' 
+						&& is_skip(p[4])) {
+					line_ptr += 4; skip();
+					val = read_long(); // the error code
+					q_ops_push(ctx, q_op_throw(val));
+				} else {
+					err_invalid_op();
+				}
+			}
+			break;
+			
 		case 'u': 
 			#include "case-u.h"
+			break;
+		
+		default:	
+			err_invalid_op();
 			break;
 	}
 }

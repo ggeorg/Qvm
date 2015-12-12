@@ -1,0 +1,216 @@
+================================================================================
+ Exception Handling
+================================================================================
+
+	Example 1: without exception handling
+	
+	+--------------------------------------------+
+			call	do_something
+
+			dump
+			ret
+
+		:do_something
+			s32	32
+			s32	0
+			div
+
+			ret
+	+--------------------------------------------+
+	
+	This code will throw a divide by error exception when run:
+	
+		../Qvm/build$ Math=libm.so ./Qvm ../exception-handling.q
+		*** q_exec:158 error: -1003
+		>>> stack trace: do_something(0x3), pc=0x5
+				 0x1: call do_something(0x3)
+	
+	
+	
+	Example 2: with exception handling
+	
+	+--------------------------------------------+
+			call	do_something
+
+			dump
+			ret
+
+		:do_something
+			joe	on_error
+				s32	32
+				s32	0
+				div
+			clr
+
+			jmp	finally
+
+		:on_error			; Error Handler
+			pop				; ignore the error code
+	
+			s32	32
+			s32	2
+			div
+
+		:finally
+
+			ret
+	+--------------------------------------------+
+	
+	This code will catch the error and will continue excecution going through
+	the error handling code in :on_error
+	
+		../Qvm/build$ Math=libm.so ./Qvm ../exception-handling.q
+		>>> sp=0x1 (0xff) pc=0x2 (0xe:0xff)
+		[       0] S32    : 16
+		
+	
+	
+	Example 3: nested exception handlers
+	
+	+--------------------------------------------+
+			call	do_something
+
+			dump
+			ret
+
+		:do_something
+			joe	on_error
+				joe	on_error_2
+					s32	32
+					s32	0
+					div
+				clr
+			clr
+
+			jmp	finally
+
+		:on_error			; Error Handler
+			pop				; ignore the error code
+	
+			s32	32
+			s32	2
+			div
+	
+			jmp	finally
+	
+		:on_error_2			; Error Handler #2
+			pop				; ignore the error code
+	
+			s32	64
+			s32	8
+			div
+
+		:finally
+
+			ret	
+	+--------------------------------------------+
+	
+	This code will use the second error handler to handle the error:
+	
+		../Qvm/build$ Math=libm.so ./Qvm ../exception-handling.q
+		>>> sp=0x1 (0xff) pc=0x2 (0x15:0xff)
+		[       0] S32    : 8
+
+
+
+	Example 4: throw exception
+	
+	+--------------------------------------------+
+			call	do_something
+
+			dump
+			ret
+
+		:do_something
+			throw	-9999	; throw exception with error code = -9999
+
+			ret
+	+--------------------------------------------+
+	
+	This code throws an exception with error code -9999:
+	
+		../Qvm/build$ Math=libm.so ./Qvm ../exception-handling.q
+		*** q_exec:158 error: -9999
+		>>> stack trace: do_something(0x3), pc=0x3
+				 0x1: call do_something(0x3)
+
+================================================================================
+ Implementation (ops/op-branching.h)
+================================================================================
+
+Qvm's q_context_t contains q_err_handler_t structure to support the nested 
+exception handlers. Adding error handlers in code is done with joe operation,
+joe will create a q_err_handler_t structure and will push it to error handling
+stack:
+
+		q_err_handler_t *h = q_gc_malloc(sizeof(q_err_handler_t));
+		
+		h->next = ctx->err_handler;
+		h->label = op->_label;
+		ctx->err_handler = h;
+		
+When ever an error happens the return value of an operation contains the error
+code. Qvm checks the return value of each operation, if the value is 0 (OP_OK),
+Qvm will continue with the next operation, if the value is not 0 (OP_OK) Qvm 
+checks the ctx->err_handler stack, if there is no error handler Qvm will print 
+the error code and a call stack trace, if the there is an error handler Qvm
+will remove the error handler from stack, then Qvm will push the error code 
+to stack as s32 value and jump to the error handling code.
+
+The implementation of throw operation returns an error code or 
+ERROR_ILLIGAL_ARGUMENT:
+
+		q_throw_t *op = (q_throw_t *)self;
+		return abs(op->_val) > 1000 ? op->_val : ERROR_ILLIGAL_ARGUMENT;
+
+clr operation removes the error handler from stack pushed by joe operation (see
+example 4)
+
+	Example 5: no exception
+	+--------------------------------------------+
+			call	do_something
+
+			dump
+			ret
+
+		:do_something
+			joe	on_error
+				s32	32
+				s32	8
+				div
+			clr
+
+			jmp	finally
+
+		:on_error			; Error Handler
+			pop				; ignore the error code
+
+			s32	32
+			s32	2
+			div
+
+		:finally
+
+			ret
+	+--------------------------------------------+
+
+	Result:
+	
+	+--------------------------------------------+
+			/Qvm/build$ Math=libm.so ./Qvm ../exception-handling.q
+		>>> sp=0x1 (0xff) pc=0x2 (0xe:0xff)
+		[       0] S32    : 4
+	+--------------------------------------------+
+
+The implementation of clr or :
+
+			q_clr_t *op = (q_clr_t *)self;
+	
+			if (ctx->err_handler) { /* drop current error handler */
+				ctx->err_handler = ctx->err_handler->next;
+			} else {
+				return ERROR_UNBALANCED_CLR_OP;
+			}
+			
+			return OP_OK;
+

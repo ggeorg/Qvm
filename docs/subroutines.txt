@@ -1,0 +1,68 @@
+================================================================================
+Invoking functions/subroutines
+================================================================================
+
+	call	<label>
+	...
+	
+:label
+	...
+	
+	ret
+	
+	Struct q_trace_t in q_context_t is used to implement call/ret operations.
+	q_trace_t implements a call stack - call operation will push the current pc
+	value to the stack and go to the specified label:
+	
+		q_trace_t *t = q_gc_malloc(sizeof(q_trace_t));
+		
+		t->next = ctx->trace;
+		t->pc   = ctx->pc;
+		
+		ctx->trace = t;
+		
+		// and go to labal
+		ctx->px = <label-lookup-function>
+		
+	When a function/subroutine is called the 'ret' operation will return back to
+	the line just after the call operation was invoked. The implementation of 
+	ret operation does:
+	
+		q_trace *t = ctx->trace
+
+		ctx->trace = t->next;
+		ctx->pc = t->pc;
+		
+	Using a call stack simplifies function/subroutince calls and provides a tool
+	to get a call stack trace during debugging:
+	
+	NOTE: the implemenation does not dictate a specific way on how to pass 
+	parameter to a function/subroutine or how to return a value from a function.
+	
+	See: op-subroutines.h for implementation of call/ret operations
+
+================================================================================
+Q's Native access (QNA)
+================================================================================
+
+.dlopen	<Libray-Name>
+
+	Opens the library to use where <Library-Name> is the alias of the library 
+	to use, e.g.: 
+	
+		.dlopen Math
+		
+		dbl	0				; result
+		dbl	625			; arguments(s)
+		dbl	1				; argc
+		inv	Math:pow
+		
+	The real name of the library should be provided through environment 
+	variables:
+	
+		Math=libm.so ./Qvm ../test.q
+		
+	The implementation of QNA uses libffi (a portable foreign function 
+	interface library). QNA does not use the call stack.
+	
+ 

@@ -98,9 +98,10 @@ struct q_value {
 #define OP_EXIT	   1
 #define OP_FAILED   -1
 
-#define ERROR_VALUE_IS_NULL     -1000
-#define ERROR_ILLIGAL_ARGUMENT  -1001
-#define ERROR_DIVISION_BY_ZERO  -1003
+#define ERROR_VALUE_IS_NULL      -1000
+#define ERROR_ILLIGAL_ARGUMENT   -1001
+#define ERROR_DIVISION_BY_ZERO   -1003
+#define ERROR_UNBALANCED_CLR_OP  -1004
 
 void q_ctx_init(q_context_t *ctx, size_t ops_max, size_t stack_max);
 
